@@ -41,8 +41,8 @@ gpio_heat = 23  # Switches zero-cross solid-state-relay
 ### Thermocouple Adapter selection:
 #   max31855 - bitbang SPI interface
 #   max31856 - bitbang SPI interface. must specify thermocouple_type.
-max31855 = 1
-max31856 = 0
+max31855 = 0
+max31856 = 1
 # see lib/max31856.py for other thermocouple_type, only applies to max31856
 # uncomment this if using MAX-31856
 #thermocouple_type = MAX31856.MAX31856_S_TYPE
@@ -105,7 +105,7 @@ sim_R_ho_air   = 0.05   # K/W  " with internal air circulation
 # If you change the temp_scale, all settings in this file are assumed to
 # be in that scale.
 
-temp_scale          = "f" # c = Celsius | f = Fahrenheit - Unit to display
+temp_scale          = "c" # c = Celsius | f = Fahrenheit - Unit to display
 time_scale_slope    = "h" # s = Seconds | m = Minutes | h = Hours - Slope displayed in temp_scale per time_scale_slope
 time_scale_profile  = "m" # s = Seconds | m = Minutes | h = Hours - Enter and view target time in time_scale_profile
 
