@@ -40,6 +40,8 @@ class Output(object):
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
             GPIO.setup(config.gpio_heat, GPIO.OUT)
+            pwm_heat = GPIO.PWM(config.gpio_heat_pwm,1000) # Configuration du pin pwm_heat en mode pwm
+            pwm_heat.start(0)	
             self.active = True
             self.GPIO = GPIO
         except:
@@ -49,6 +51,7 @@ class Output(object):
 
     def heat(self,sleepfor):
         self.GPIO.output(config.gpio_heat, self.GPIO.HIGH)
+        pwm_heat.ChangeDutyCycle(50)
         time.sleep(sleepfor)
 
     def cool(self,sleepfor):
