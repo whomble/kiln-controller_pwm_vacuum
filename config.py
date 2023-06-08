@@ -2,7 +2,7 @@ import logging
 import os
 
 # uncomment this if using MAX-31856
-#from lib.max31856 import MAX31856
+from lib.max31856 import MAX31856
 
 ########################################################################
 #
@@ -22,9 +22,9 @@ listening_port = 8081
 # to produce the actual cost during a run. My kiln has three
 # elements that when my switches are set to high, consume 9460 watts.
 
-kwh_rate        = 0.1319  # cost per kilowatt hour per currency_type to calculate cost to run job
-kw_elements     = 9.460 # if the kiln elements are on, the wattage in kilowatts
-currency_type   = "$"   # Currency Symbol to show when calculating cost to run job
+kwh_rate        = 0.1  # cost per kilowatt hour per currency_type to calculate cost to run job
+kw_elements     = 20 # if the kiln elements are on, the wattage in kilowatts
+currency_type   = "€"   # Currency Symbol to show when calculating cost to run job
 
 ########################################################################
 #
@@ -36,16 +36,16 @@ currency_type   = "$"   # Currency Symbol to show when calculating cost to run j
 #   can use whichever GPIO you prefer/have available.
 
 ### Outputs
-gpio_heat = 23  # Switches zero-cross solid-state-relay
+gpio_heat = 12  # Switches zero-cross solid-state-relay
 
 ### Thermocouple Adapter selection:
 #   max31855 - bitbang SPI interface
 #   max31856 - bitbang SPI interface. must specify thermocouple_type.
-max31855 = 0
-max31856 = 1
+max31855 = 1
+max31856 = 0
 # see lib/max31856.py for other thermocouple_type, only applies to max31856
 # uncomment this if using MAX-31856
-#thermocouple_type = MAX31856.MAX31856_S_TYPE
+thermocouple_type = MAX31856.MAX31856_K_TYPE
 
 ### Thermocouple Connection (using bitbang interfaces)
 gpio_sensor_cs = 27
@@ -60,7 +60,7 @@ gpio_sensor_di = 10 # only used with max31856
 # Every N seconds a decision is made about switching the relay[s] 
 # on & off and for how long. The thermocouple is read 
 # temperature_average_samples times during and the average value is used.
-sensor_time_wait = 2
+sensor_time_wait = 1
 
 
 ########################################################################
@@ -90,8 +90,8 @@ stop_integral_windup = True
 simulate = True
 sim_t_env      = 60.0   # deg C
 sim_c_heat     = 500.0  # J/K  heat capacity of heat element
-sim_c_oven     = 5000.0 # J/K  heat capacity of oven
-sim_p_heat     = 5450.0 # W    heating power of oven
+sim_c_oven     = 500.0 # J/K  heat capacity of oven
+sim_p_heat     = 20000.0 # W    heating power of oven
 sim_R_o_nocool = 0.5   # K/W  thermal resistance oven -> environment
 sim_R_o_cool   = 0.05   # K/W  " with cooling
 sim_R_ho_noair = 0.1    # K/W  thermal resistance heat element -> oven
@@ -119,7 +119,7 @@ emergency_shutoff_temp = 2264 #cone 7
 # If the current temperature is outside the pid control window,
 # delay the schedule until it does back inside. This allows for heating
 # and cooling as fast as possible and not continuing until temp is reached.
-kiln_must_catch_up = True
+kiln_must_catch_up = False
 
 # This setting is required. 
 # This setting defines the window within which PID control occurs.
@@ -175,7 +175,7 @@ ignore_tc_short_errors = False
 # cleaned up (deleted) by the OS on boot.
 # The state file is written to disk every sensor_time_wait seconds (2s by default)
 # and is written in the same directory as config.py.
-automatic_restarts = True
+automatic_restarts = False
 automatic_restart_window = 15 # max minutes since power outage
 automatic_restart_state_file = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'state.json'))
 
