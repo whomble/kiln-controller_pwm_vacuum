@@ -39,7 +39,7 @@ class Output(object):
             import RPi.GPIO as GPIO
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
-            GPIO.setup(config.gpio_heat, GPIO.OUT)
+            GPIO.setup(config.gpio_heat_pwm, GPIO.OUT)
             pwm_heat = GPIO.PWM(config.gpio_heat_pwm,1000) # Configuration du pin pwm_heat en mode pwm
             pwm_heat.start(0)	
             self.active = True
@@ -49,15 +49,9 @@ class Output(object):
             log.warning(msg)
             self.active = False
 
-    def heat(self,sleepfor):
+    def heat(self,pwm_value):
         self.GPIO.output(config.gpio_heat, self.GPIO.HIGH)
-        pwm_heat.ChangeDutyCycle(50)
-        time.sleep(sleepfor)
-
-    def cool(self,sleepfor):
-        '''no active cooling, so sleep'''
-        self.GPIO.output(config.gpio_heat, self.GPIO.LOW)
-        time.sleep(sleepfor)
+        config.gpio_heat_pwm.ChangeDutyCycle(pwm_value)
 
 # FIX - Board class needs to be completely removed
 class Board(object):
@@ -513,11 +507,10 @@ class RealOven(Oven):
         self.output.cool(0)
 
     def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature +
-                               config.thermocouple_offset)
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
+        pid = self.pid.compute(self.target, self.board.temp_sensor.temperature + config.thermocouple_offset)
+        pwm_value = int(100 * pid)  # Convertir la valeur du régulateur PID en valeur PWM entre 0 et 100
+        # Utilisez la valeur de PWM calculée pour contrôler la chauffe, par exemple :
+        self.output.heat(pwm_value)
 
         # self.heat is for the front end to display if the heat is on
         self.heat = 0.0
