@@ -468,7 +468,33 @@ function getOptions()
 
 }
 
-
+function updateProfileGraph(data) {
+    // ...
+    var options = {
+      // Configuration du graphique
+      series: {
+        lines: {
+          show: true,
+          lineWidth: 1.5
+        },
+        points: {
+          show: false
+        }
+      },
+      // Configuration des axes
+      xaxis: {
+        axisLabel: 'Temps (h)',
+        // Autres options de configuration de l'axe x
+      },
+      yaxes: [{
+        axisLabel: 'Temperature (°C)',
+        // Autres options de configuration de l'axe y
+      }],
+      // Autres options du graphique
+    };
+    // ...
+  }
+  
 
 $(document).ready(function()
 {
