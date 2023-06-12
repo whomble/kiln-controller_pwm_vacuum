@@ -40,8 +40,12 @@ class Output(object):
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
             GPIO.setup(config.gpio_heat_pwm, GPIO.OUT)
-            pwm_heat = GPIO.PWM(config.gpio_heat_pwm,1000) # Configuration du pin pwm_heat en mode pwm
-            pwm_heat.start(0)	
+            GPIO.setup(config.gpio_primaire, GPIO.OUT)    # Sortie Primaire
+            GPIO.setup(config.gpio_secondaire, GPIO.OUT)  # Sortie Secondaire
+            GPIO.setup(config.gpio_argon_in, GPIO.OUT)    # Sortie Argon_In
+            GPIO.setup(config.gpio_argon_out, GPIO.OUT)   # Sortie Argon_Out
+            pwm_heat = GPIO.PWM(config.gpio_heat_pwm, 1000)  # Configuration du pin pwm_heat en mode pwm
+            pwm_heat.start(0)
             self.active = True
             self.GPIO = GPIO
         except:
@@ -49,11 +53,22 @@ class Output(object):
             log.warning(msg)
             self.active = False
 
-    def heat(self,pwm_value):
+    def heat(self, pwm_value):
         self.GPIO.output(config.gpio_heat, self.GPIO.HIGH)
         config.gpio_heat_pwm.ChangeDutyCycle(pwm_value)
 
-# FIX - Board class needs to be completely removed
+    def Primaire(self, value):
+        self.GPIO.output(config.gpio_primaire, value)
+
+    def Secondaire(self, value):
+        self.GPIO.output(config.gpio_secondaire, value)
+
+    def Argon_In(self, value):
+        self.GPIO.output(config.gpio_argon_in, value)
+
+    def Argon_Out(self, value):
+        self.GPIO.output(config.gpio_argon_out, value)
+
 class Board(object):
     def __init__(self):
         self.name = None
@@ -87,13 +102,14 @@ class Board(object):
 
     def create_temp_sensor(self):
         if config.simulate == True:
-            self.temp_sensor = TempSensorSimulate()
+            self.temp_sensor = TempSensorSimulated()
         else:
             self.temp_sensor = TempSensorReal()
 
 class BoardSimulated(object):
     def __init__(self):
         self.temp_sensor = TempSensorSimulated()
+
 
 class TempSensor(threading.Thread):
     def __init__(self):
@@ -207,7 +223,10 @@ class Oven(threading.Thread):
         self.start_time = 0
         self.runtime = 0
         self.totaltime = 0
-        self.target = 0
+        self.target_temperature = 0
+        self.target_pressure = 0
+        self.target_power = 0
+        self.target_vacuum = 0
         self.heat = 0
         self.pid = PID(ki=config.pid_ki, kd=config.pid_kd, kp=config.pid_kp)
 
@@ -247,11 +266,11 @@ class Oven(threading.Thread):
             temp = self.board.temp_sensor.temperature + \
                 config.thermocouple_offset
             # kiln too cold, wait for it to heat up
-            if self.target - temp > config.pid_control_window:
+            if self.target_temperature - temp > config.pid_control_window:
                 log.info("kiln must catch up, too cold, shifting schedule")
                 self.start_time = datetime.datetime.now() - datetime.timedelta(milliseconds = self.runtime * 1000)
             # kiln too hot, wait for it to cool down
-            if temp - self.target > config.pid_control_window:
+            if temp - self.target_temperature > config.pid_control_window:
                 log.info("kiln must catch up, too hot, shifting schedule")
                 self.start_time = datetime.datetime.now() - datetime.timedelta(milliseconds = self.runtime * 1000)
 
@@ -264,7 +283,13 @@ class Oven(threading.Thread):
         self.runtime = runtime_delta.total_seconds()
 
     def update_target_temp(self):
-        self.target = self.profile.get_target_temperature(self.runtime)
+        self.target_temperature = self.profile.get_target_temperature(self.runtime)
+
+    def update_target_vacuum(self):
+        pressure = self.profile.get_target_values(self.runtime)[1]
+        power = self.profile.get_target_values(self.runtime)[2]
+        self.target_vacuum = pressure * pow(10, power)
+
 
     def reset_if_emergency(self):
         '''reset if the temperature is way TOO HOT, or other critical errors detected'''
@@ -295,13 +320,6 @@ class Oven(threading.Thread):
             log.info("total cost = %s%.2f" % (config.currency_type,self.cost))
             self.abort_run()
 
-    def update_cost(self):
-        if self.heat:
-            cost = (config.kwh_rate * config.kw_elements) * ((self.heat)/3600)
-        else:
-            cost = 0
-        self.cost = self.cost + cost
-
     def get_state(self):
         temp = 0
         try:
@@ -315,7 +333,10 @@ class Oven(threading.Thread):
             'cost': self.cost,
             'runtime': self.runtime,
             'temperature': temp,
-            'target': self.target,
+            'target_temperature': self.target_temperature,
+            'target_pressure': self.target_pressure,
+            'target_power': self.target_power,
+            'target_vacuum': self.target_vacuum,
             'state': self.state,
             'heat': self.heat,
             'totaltime': self.totaltime,
@@ -445,19 +466,16 @@ class SimulatedOven(Oven):
         self.board.temp_sensor.temperature = self.t
 
     def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature +
-                               config.thermocouple_offset)
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
-
+        pid = self.pid.compute(self.target_temperature, self.board.temp_sensor.temperature + config.thermocouple_offset)
+        pwm_value = int(100 * pid)  # Convertir la valeur du régulateur PID en valeur PWM entre 0 et 100
+        # Utilisez la valeur de PWM calculée pour contrôler la chauffe, par exemple :
         self.heating_energy(pid)
         self.temp_changes()
 
         # self.heat is for the front end to display if the heat is on
         self.heat = 0.0
-        if heat_on > 0:
-            self.heat = heat_on
+        if pwm_value > 0:
+            self.heat = 1
 
         log.info("simulation: -> %dW heater: %.0f -> %dW oven: %.0f -> %dW env"            % (int(self.p_heat * pid),
             self.t_h,
@@ -468,7 +486,7 @@ class SimulatedOven(Oven):
         time_left = self.totaltime - self.runtime
 
         try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+            log.info("temp=%.2f, target_temperature=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, pwm_value=%.2f, pwm_value=%.2f, run_time=%d, total_time=%d, time_left=%d" %
                 (self.pid.pidstats['ispoint'],
                 self.pid.pidstats['setpoint'],
                 self.pid.pidstats['err'],
@@ -476,8 +494,7 @@ class SimulatedOven(Oven):
                 self.pid.pidstats['p'],
                 self.pid.pidstats['i'],
                 self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
+                pwm_value,
                 self.runtime,
                 self.totaltime,
                 time_left))
@@ -507,23 +524,21 @@ class RealOven(Oven):
         self.output.cool(0)
 
     def heat_then_cool(self):
-        pid = self.pid.compute(self.target, self.board.temp_sensor.temperature + config.thermocouple_offset)
+        pid = self.pid.compute(self.target_temperature, self.board.temp_sensor.temperature + config.thermocouple_offset)
         pwm_value = int(100 * pid)  # Convertir la valeur du régulateur PID en valeur PWM entre 0 et 100
         # Utilisez la valeur de PWM calculée pour contrôler la chauffe, par exemple :
         self.output.heat(pwm_value)
 
         # self.heat is for the front end to display if the heat is on
         self.heat = 0.0
-        if heat_on > 0:
+        if pwm_value > 0:
             self.heat = 1.0
 
-        if heat_on:
-            self.output.heat(heat_on)
-        if heat_off:
-            self.output.cool(heat_off)
+        if pwm_value > 1:
+            self.output.heat(1)
         time_left = self.totaltime - self.runtime
         try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+            log.info("temp=%.2f, target_temperature=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, pwm_value=%.2f, run_time=%d, total_time=%d, time_left=%d" %
                 (self.pid.pidstats['ispoint'],
                 self.pid.pidstats['setpoint'],
                 self.pid.pidstats['err'],
@@ -531,8 +546,7 @@ class RealOven(Oven):
                 self.pid.pidstats['p'],
                 self.pid.pidstats['i'],
                 self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
+                pwm_value,
                 self.runtime,
                 self.totaltime,
                 time_left))
@@ -543,10 +557,10 @@ class Profile():
     def __init__(self, json_data):
         obj = json.loads(json_data)
         self.name = obj["name"]
-        self.data = sorted(obj["data"])
+        self.data = sorted([(t, (temperature, pressure, power)) for t, temperature, pressure, power in obj["data"]])
 
     def get_duration(self):
-        return max([t for (t, x) in self.data])
+        return max([t for (t, (temperature, pressure, power)) in self.data])
 
     def get_surrounding_points(self, time):
         if time > self.get_duration():
@@ -568,10 +582,30 @@ class Profile():
             return 0
 
         (prev_point, next_point) = self.get_surrounding_points(time)
+        incl_temperature = (next_point[1][0] - prev_point[1][0]) / (next_point[0] - prev_point[0])
+        temperature = prev_point[1][0] + (time - prev_point[0]) * incl_temperature
+        return temperature
 
-        incl = float(next_point[1] - prev_point[1]) / float(next_point[0] - prev_point[0])
-        temp = prev_point[1] + (time - prev_point[0]) * incl
-        return temp
+    def get_target_pressure(self, time):
+        if time > self.get_duration():
+            return 0
+
+        (prev_point, next_point) = self.get_surrounding_points(time)
+        incl_pressure = (next_point[1][1] - prev_point[1][1]) / (next_point[0] - prev_point[0])
+        pressure = prev_point[1][1] + (time - prev_point[0]) * incl_pressure
+        return pressure
+
+    def get_target_power(self, time):
+        if time > self.get_duration():
+            return 0
+
+        (prev_point, next_point) = self.get_surrounding_points(time)
+        incl_power = (next_point[1][2] - prev_point[1][2]) / (next_point[0] - prev_point[0])
+        power = prev_point[1][2] + (time - prev_point[0]) * incl_power
+        return power
+
+
+
 
 
 class PID():
