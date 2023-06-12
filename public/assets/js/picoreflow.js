@@ -52,11 +52,9 @@ function updateProfile(id)
     selected_profile_name = profiles[id].name;
     var job_seconds = profiles[id].data.length === 0 ? 0 : parseInt(profiles[id].data[profiles[id].data.length-1][0]);
     var kwh = (3850*job_seconds/3600/1000).toFixed(2);
-    var cost =  (kwh*kwh_rate).toFixed(2);
     var job_time = new Date(job_seconds * 1000).toISOString().substr(11, 8);
     $('#sel_prof').html(profiles[id].name);
     $('#sel_prof_eta').html(job_time);
-    $('#sel_prof_cost').html(kwh + ' kWh ('+ currency_type +': '+ cost +')');
     graph.profile.data = profiles[id].data;
     graph.plot = $.plot("#graph_container", [ graph.profile, graph.live ] , getOptions());
 }
@@ -102,71 +100,59 @@ function updateProgress(percentage)
     }
 }
 
-function updateProfileTable() {
+function updateProfileTable()
+{
     var dps = 0;
     var slope = "";
     var color = "";
-  
+// ajout de deux var pour les données de pression <tr><th style="width: 50px">#</th><th>Pressure in ' + Pressure_scale_long && '<tr><th style="width: 50px">#</th><th>10^x ' + Power_scale_long
     var html = '<h3>Schedule Points</h3><div class="table-responsive" style="scroll: none"><table class="table table-striped">';
-    html += '<tr><th style="width: 50px">#</th><th>Target Time in ' + time_scale_long + '</th><th>Target Temperature in °' + temp_scale_display + '</th><th>Slope in &deg;' + temp_scale_display + '/' + time_scale_slope + '</th><th></th></tr>';
-  
-    for (var i = 0; i < graph.profile.data.length; i++) {
-      if (i >= 1)
-        dps = ((graph.profile.data[i].temperature - graph.profile.data[i - 1].temperature) / (graph.profile.data[i].duration - graph.profile.data[i - 1].duration) * 10) / 10;
-      if (dps > 0) {
-        slope = "up";
-        color = "rgba(206, 5, 5, 1)";
-      } else if (dps < 0) {
-        slope = "down";
-        color = "rgba(23, 108, 204, 1)";
-        dps *= -1;
-      } else if (dps == 0) {
-        slope = "right";
-        color = "grey";
-      }
-  
-      html += '<tr><td><h4>' + (i + 1) + '</h4></td>';
-      html += '<td><input type="text" class="form-control" id="profiletable-0-' + i + '" value="' + timeProfileFormatter(graph.profile.data[i].duration, true) + '" style="width: 60px" /></td>';
-      html += '<td><input type="text" class="form-control" id="profiletable-1-' + i + '" value="' + graph.profile.data[i].temperature + '" style="width: 60px" /></td>';
-      // Colonne pour la valeur de pression (0 à 1000)
-      html += '<td><input type="number" class="form-control" id="profiletable-pressure-value-' + i + '" value="' + graph.profile.data[i].pressureValue + '" min="0" max="1000" /></td>';
-  
-      // Colonne pour la puissance de 10 pour la pression (10^-5 à 10^3)
-      html += '<td><input type="number" class="form-control" id="profiletable-pressure-power-' + i + '" value="' + graph.profile.data[i].pressurePower + '" min="-5" max="3" /></td>';
-  
-      html += '<td><div class="input-group"><span class="glyphicon glyphicon-circle-arrow-' + slope + ' input-group-addon ds-trend" style="background: ' + color + '"></span><input type="text" class="form-control ds-input" readonly value="' + formatDPS(dps) + '" style="width: 100px" /></div></td>';
-      html += '<td>&nbsp;</td></tr>';
+        html += '<tr><th style="width: 50px">#</th><th>Target Time in ' + time_scale_long+ '</th><th>Target Temperature in °'+temp_scale_display+'<tr><th style="width: 50px">#</th><th>Pressure in ' + Pressure_scale_long+'<tr><th style="width: 50px">#</th><th>10^x ' + Power_scale_long+'</th><th>Slope in &deg;'+temp_scale_display+'/'+time_scale_slope+'</th><th></th></tr>'; 
+
+    for(var i=0; i<graph.profile.data.length;i++)
+    {
+
+        if (i>=1) dps =  ((graph.profile.data[i][1]-graph.profile.data[i-1][1])/(graph.profile.data[i][0]-graph.profile.data[i-1][0]) * 10) / 10;
+        if (dps  > 0) { slope = "up";     color="rgba(206, 5, 5, 1)"; } else
+        if (dps  < 0) { slope = "down";   color="rgba(23, 108, 204, 1)"; dps *= -1; } else
+        if (dps == 0) { slope = "right";  color="grey"; }
+
+        html += '<tr><td><h4>' + (i+1) + '</h4></td>';
+        html += '<td><input type="text" class="form-control" id="profiletable-0-'+i+'" value="'+ timeProfileFormatter(graph.profile.data[i][0],true) + '" style="width: 60px" /></td>';
+        html += '<td><input type="text" class="form-control" id="profiletable-1-'+i+'" value="'+ graph.profile.data[i][1] + '" style="width: 60px" /></td>';
+        html += '<td><div class="input-group"><span class="glyphicon glyphicon-circle-arrow-' + slope + ' input-group-addon ds-trend" style="background: '+color+'"></span><input type="text" class="form-control ds-input" readonly value="' + formatDPS(dps) + '" style="width: 100px" /></div></td>';
+        html += '<td>&nbsp;</td></tr>';
     }
-  
+
     html += '</table></div>';
-  
+
     $('#profile_table').html(html);
-  
+
     //Link table to graph
-    $(".form-control").change(function (e) {
-      var id = $(this)[0].id;
-      var value = parseInt($(this)[0].value);
-      var fields = id.split("-");
-      var col = parseInt(fields[1]);
-      var row = parseInt(fields[2]);
-  
-      if (graph.profile.data.length > 0) {
-        if (col == 0) {
-          graph.profile.data[row].duration = timeProfileFormatter(value, false);
-        } else if (col == 1) {
-          graph.profile.data[row].temperature = value;
-        } else if (col == 2) {
-          graph.profile.data[row].pressureValue = value;
-        } else if (col == 3) {
-          graph.profile.data[row].pressurePower = value;
-        }
-  
-        graph.plot = $.plot("#graph_container", [graph.profile, graph.live], getOptions());
-      }
-      updateProfileTable();
-    });
-  }
-  
+    $(".form-control").change(function(e)
+        {
+            var id = $(this)[0].id; //e.currentTarget.attributes.id
+            var value = parseInt($(this)[0].value);
+            var fields = id.split("-");
+            var col = parseInt(fields[1]);
+            var row = parseInt(fields[2]);
+
+            if (graph.profile.data.length > 0) {
+                if (col == 0) {
+                  graph.profile.data[row].duration = timeProfileFormatter(value, false);
+                } else if (col == 1) {
+                  graph.profile.data[row].temperature = value;
+                } else if (col == 2) {
+                  graph.profile.data[row].pressureValue = value;
+                } else if (col == 3) {
+                  graph.profile.data[row].pressurePower = value;
+                }
+          
+                graph.plot = $.plot("#graph_container", [graph.profile, graph.live], getOptions());
+              }
+              updateProfileTable();
+            });
+}
 
 function timeProfileFormatter(val, down) {
     var rval = val
@@ -430,7 +416,6 @@ function getOptions()
         family: "Digi",
         variant: "small-caps",
         color: "rgba(216, 211, 197, 0.85)"
-        text: 'Time (s)'
       }
 	},
 
@@ -448,7 +433,6 @@ function getOptions()
         family: "Digi",
         variant: "small-caps",
         color: "rgba(216, 211, 197, 0.85)"
-        text: 'Temperature (°C)'
       }
 	},
 
@@ -470,33 +454,7 @@ function getOptions()
 
 }
 
-function updateProfileGraph(data) {
-    // ...
-    var options = {
-      // Configuration du graphique
-      series: {
-        lines: {
-          show: true,
-          lineWidth: 1.5
-        },
-        points: {
-          show: false
-        }
-      },
-      // Configuration des axes
-      xaxis: {
-        axisLabel: 'Temps (h)',
-        // Autres options de configuration de l'axe x
-      },
-      yaxes: [{
-        axisLabel: 'Temperature (°C)',
-        // Autres options de configuration de l'axe y
-      }],
-      // Autres options du graphique
-    };
-    // ...
-  }
-  
+
 
 $(document).ready(function()
 {
@@ -604,7 +562,6 @@ $(document).ready(function()
                     updateProgress(parseFloat(x.runtime)/parseFloat(x.totaltime)*100);
                     $('#state').html('<span class="glyphicon glyphicon-time" style="font-size: 22px; font-weight: normal"></span><span style="font-family: Digi; font-size: 40px;">' + eta + '</span>');
                     $('#target_temp').html(parseInt(x.target));
-                    $('#cost').html(x.currency_type + parseFloat(x.cost).toFixed(2));
                   
 
 
