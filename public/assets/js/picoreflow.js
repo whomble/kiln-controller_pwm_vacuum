@@ -430,6 +430,7 @@ function getOptions()
         family: "Digi",
         variant: "small-caps",
         color: "rgba(216, 211, 197, 0.85)"
+        text: 'Time (s)'
       }
 	},
 
@@ -447,6 +448,7 @@ function getOptions()
         family: "Digi",
         variant: "small-caps",
         color: "rgba(216, 211, 197, 0.85)"
+        text: 'Temperature (°C)'
       }
 	},
 
