@@ -11,6 +11,8 @@ var time_scale_slope = "s";
 var time_scale_profile = "s";
 var time_scale_long = "Seconds";
 var temp_scale_display = "C";
+var Pressure_scale = "mbar"
+var Power_scale = "10^"
 var kwh_rate = 0.26;
 var currency_type = "EUR";
 
@@ -107,7 +109,7 @@ function updateProfileTable()
     var color = "";
 // ajout de deux var pour les données de pression <tr><th style="width: 50px">#</th><th>Pressure in ' + Pressure_scale_long && '<tr><th style="width: 50px">#</th><th>10^x ' + Power_scale_long
     var html = '<h3>Schedule Points</h3><div class="table-responsive" style="scroll: none"><table class="table table-striped">';
-        html += '<tr><th style="width: 50px">#</th><th>Target Time in ' + time_scale_long+ '</th><th>Target Temperature in °'+temp_scale_display+'<tr><th style="width: 50px">#</th><th>Pressure in ' + Pressure_scale_long+'<tr><th style="width: 50px">#</th><th>10^x ' + Power_scale_long+'</th><th>Slope in &deg;'+temp_scale_display+'/'+time_scale_slope+'</th><th></th></tr>'; 
+        html += '<tr><th style="width: 50px">#</th><th>Target Time in ' + time_scale_long+ '</th><th>Target Temperature in °'+temp_scale_display+'</th><th>Pressure in ' + Pressure_scale+'</th><th>10^x ' + Power_scale +'</th><th>Slope in &deg;'+temp_scale_display+'/'+time_scale_slope+'</th><th></th></tr>'; 
 
     for(var i=0; i<graph.profile.data.length;i++)
     {
@@ -117,9 +119,11 @@ function updateProfileTable()
         if (dps  < 0) { slope = "down";   color="rgba(23, 108, 204, 1)"; dps *= -1; } else
         if (dps == 0) { slope = "right";  color="grey"; }
 
-        html += '<tr><td><h4>' + (i+1) + '</h4></td>';
-        html += '<td><input type="text" class="form-control" id="profiletable-0-'+i+'" value="'+ timeProfileFormatter(graph.profile.data[i][0],true) + '" style="width: 60px" /></td>';
-        html += '<td><input type="text" class="form-control" id="profiletable-1-'+i+'" value="'+ graph.profile.data[i][1] + '" style="width: 60px" /></td>';
+        html += '<tr><td><h4>' + (i+1) + '</h4></td>'; // numéro ligne
+        html += '<td><input type="text" class="form-control" id="profiletable-0-'+i+'" value="'+ timeProfileFormatter(graph.profile.data[i][0],true) + '" style="width: 60px" /></td>'; //durée
+        html += '<td><input type="text" class="form-control" id="profiletable-1-'+i+'" value="'+ graph.profile.data[i][1] + '" style="width: 60px" /></td>'; //température
+        html += '<td><input type="text" class="form-control" id="profiletable-1-'+i+'" value="'+ graph.profile.data[i][2] + '" style="width: 60px" /></td>'; //pression
+        html += '<td><input type="text" class="form-control" id="profiletable-1-'+i+'" value="'+ graph.profile.data[i][3] + '" style="width: 60px" /></td>'; //puissance
         html += '<td><div class="input-group"><span class="glyphicon glyphicon-circle-arrow-' + slope + ' input-group-addon ds-trend" style="background: '+color+'"></span><input type="text" class="form-control ds-input" readonly value="' + formatDPS(dps) + '" style="width: 100px" /></div></td>';
         html += '<td>&nbsp;</td></tr>';
     }

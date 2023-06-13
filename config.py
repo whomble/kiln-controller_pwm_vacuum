@@ -38,6 +38,10 @@ currency_type   = "€"   # Currency Symbol to show when calculating cost to run
 ### Outputs
 ## gpio_heat = 17  # Switches zero-cross solid-state-relay
 gpio_heat_pwm = 18 #pwm pour la gestion proportionnelle de la pûissance
+gpio_primaire = 20   # Sortie Primaire
+gpio_secondaire = 21 # Sortie Secondaire
+gpio_argon_in = 22 # Sortie Argon_In
+gpio_argon_out = 23 # Sortie Argon_Out
 
 ### Thermocouple Adapter selection:
 #   max31855 - bitbang SPI interface
