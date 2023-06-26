@@ -4,7 +4,8 @@
 
  <title>Kiln Controller</title>
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+ <meta charset="utf-8">
+ 
  <script src="assets/js/jquery-1.10.2.min.js"></script>
  <script src="assets/js/jquery.event.drag-2.2.js"></script>
  <script src="assets/js/jquery.flot.js"></script>
@@ -29,16 +30,14 @@
    <div class="ds-title-panel">
     <div class="ds-title">Sensor Temp</div>
     <div class="ds-title">Target Temp</div>
-    <div class="ds-title">Pression (mbar)</div>
-    <div class="ds-title">Facteur (10^x)</div>
+    <div class="ds-title">Pressure</div>
     <div class="ds-title ds-state pull-right" style="border-left: 1px solid #ccc;">Status</div>
    </div>
    <div class="clearfix"></div>
    <div class="ds-panel">
     <div class="display ds-num"><span id="act_temp">25</span><span class="ds-unit" id="act_temp_scale" >&deg;C</span></div>
     <div class="display ds-num ds-target"><span id="target_temp">---</span><span class="ds-unit" id="target_temp_scale">&deg;C</span></div>
-    <div class="display ds-num"><span id="pressure">---</span><span class="ds-unit">mbar</span></div>
-    <div class="display ds-num"><span id="factor">---</span><span class="ds-unit">(10^x)</span></div>
+    <div class="display ds-num ds-cost"><span id="cost">0.00</span><span class="ds-unit" id="cost"></span></div>
     <div class="display ds-num ds-text" id="state"></div>
     <div class="display pull-right ds-state" style="padding-right:0"><span class="ds-led" id="heat">&#92;</span><span class="ds-led" id="cool">&#108;</span><span class="ds-led" id="air">&#91;</span><span class="ds-led" id="hazard">&#73;</span><span class="ds-led" id="door">&#9832;</span></div>
    </div>
@@ -105,6 +104,7 @@
      <table class="table table-bordered">
       <tr><td>Selected Profile</td><td><b><span id="sel_prof"></span></b></td></tr>
       <tr><td>Estimated Runtime</td><td><b><span id="sel_prof_eta"></span></b></td></tr>
+      <tr><td>Estimated Power consumption</td><td><b><span id="sel_prof_cost"></span></b></td></tr>
      </table>
     </div>
     <div class="modal-footer">
