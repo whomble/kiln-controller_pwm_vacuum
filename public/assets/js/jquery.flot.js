@@ -1857,10 +1857,25 @@ Licensed under the MIT license.
                 drawGrid();
             }
 
+			//series[2]=series[0];
+			//series[2]=JSON.parse(JSON.stringify(series[0]));
+			//for (var i=0; i<series[2].data.length; i++) {
+				//series[2].data[i][1] = document.getElementById("profiletable-2-"+i).value;
+			//}
+			//var foo = series[0].data[0][1];
+			//series[0].data[0][1] = 30*series[0].data.length;
+			//console.dir(series);
+			//console.log(series[0].data[0][1]);
             for (var i = 0; i < series.length; ++i) {
                 executeHooks(hooks.drawSeries, [ctx, series[i]]);
                 drawSeries(series[i]);
             }
+			//console.log(series);
+			//series[0].data[0][1] = 0;
+			//series[0].data[0][1] = foo;
+			//console.log(series[0].data);
+			//console.log(JSON.stringify(series));
+			//series.length=2;
 
             executeHooks(hooks.draw, [ctx]);
 
@@ -1874,6 +1889,9 @@ Licensed under the MIT license.
             // should probably update the overlay highlights as well.
 
             triggerRedrawOverlay();
+			//alert("RIEN");
+//await new Promise(r => setTimeout(r, 2000));
+			//alert("RIEN");
         }
 
         function extractRange(ranges, coord) {
@@ -2159,6 +2177,9 @@ Licensed under the MIT license.
                     font = axis.options.font || "flot-tick-label tickLabel",
                     tick, x, y, halign, valign;
 
+				font.family="Calibri"
+				// console.log(axis);
+				// console.log(font);
                 // Remove text before checking for axis.show and ticks.length;
                 // otherwise plugins, like flot-tickrotor, that draw their own
                 // tick labels will end up with both theirs and the defaults.
@@ -2195,13 +2216,35 @@ Licensed under the MIT license.
                     }
 
                     surface.addText(layer, x, y, tick.label, font, null, null, halign, valign);
+					//console.log(tick);
                 }
+
+				//console.log(surface);
+				//font.color="rgba(216, 211, 197, 0.40)"; // moins visible
+				font.size+=6; // agrandir la police
+				font.lineHeight+=6;
+				font.variant="normal"; // autoriser les lettres en minuscule aussi
+				//surface.addText(layer, surface.width/2-50, -9, "Kiln Controller", font, null, null, "middle", 0);
+
+				//font.color="rgba(216, 211, 197, 0.85)"; // couleur normale
+				surface.addText(layer, 35, -9, "Température (°C)", font, null, null, "left", 0); // titres échelles
+				surface.addText(layer, surface.width-30, -9, "Log10 Pression (mbar)", font, null, null, "right", 0);
+				surface.addText(layer, surface.width/2-10, surface.height-6, "Temps (h)", font, null, null, "middle", 0);
+
+				font.size-=6; // tout remettre comme avant
+				font.lineHeight-=6;
+				//font.family="Digi"
+				font.variant="small-caps"; // ancienne valeur par défaut
+				for (let b=0; b<9; b++) {
+					// échelle droite : log_10 pression de +3 à -5
+					surface.addText(layer, surface.width+9, 4+268*b/8, (3-b), font, null, null, "right", 0);
+				}
             });
         }
 
         function drawSeries(series) {
-            if (series.lines.show)
-                drawSeriesLines(series);
+			if (series.lines.show)
+				drawSeriesLines(series);
             if (series.bars.show)
                 drawSeriesBars(series);
             if (series.points.show)
@@ -2209,85 +2252,124 @@ Licensed under the MIT license.
         }
 
         function drawSeriesLines(series) {
-            function plotLine(datapoints, xoffset, yoffset, axisx, axisy) {
-                var points = datapoints.points,
-                    ps = datapoints.pointsize,
-                    prevx = null, prevy = null;
+			//console.log(series.datapoints);
+			function plotLine(datapoints, xoffset, yoffset, axisx, axisy) {
+				//ctx.font = "14px Monospace";
+				//ctx.fillStyle="#bbf";
+				//ctx.fillText("Titre du Graphe", 300, 3);
+				//ctx.fillText("+3", 640, 4);
+				//ctx.fillText("-5", 640, 268);
+				//for (let b=0; b<9; b++) {
+					//ctx.fillText((b<4 ? " " : "") + (3-b), 640, 4+268*b/8);
+				//}
+				for (let b=2; b>0; b--) {
+					for (let j=1; j<datapoints.points.length; j+=2) {
+						if (b==1) {
+							a = document.getElementById("profiletable-"+1+"-"+(j-1)/2);
+							datapoints.points[j] = a===null ? 0 : a.value;
+						} else {
+							a = document.getElementById("profiletable-"+2+"-"+(j-1)/2);
+							c = a===null ? 0 : a.value;
+							a = document.getElementById("profiletable-"+3+"-"+(j-1)/2);
+							if (c<10**(-5)) {
+								c=10**(-5);
+							}
+							c *= 10**(a===null ? 0 : a.value);
+							c = axisy.max/8*(Math.log10(c)+5);
+							datapoints.points[j] = c;
+						}
+						//a = document.getElementById("profiletable-"+b+"-"+(j-1)/2);
+						//datapoints.points[j] = a===null ? 0 : a.value;
+					}
+					if (b==1) {
+						ctx.strokeStyle = "#f00";
+					} else {
+						ctx.strokeStyle = "#0f0";
+					}
+					var points = datapoints.points,
+						ps = datapoints.pointsize,
+						prevx = null, prevy = null;
 
-                ctx.beginPath();
-                for (var i = ps; i < points.length; i += ps) {
-                    var x1 = points[i - ps], y1 = points[i - ps + 1],
-                        x2 = points[i], y2 = points[i + 1];
+					ctx.beginPath();
+					for (var i = ps; i < points.length; i += ps) {
+						var x1 = points[i - ps], y1 = points[i - ps + 1],
+							x2 = points[i], y2 = points[i + 1];
 
-                    if (x1 == null || x2 == null)
-                        continue;
+						if (x1 == null || x2 == null)
+							continue;
 
-                    // clip with ymin
-                    if (y1 <= y2 && y1 < axisy.min) {
-                        if (y2 < axisy.min)
-                            continue;   // line segment is outside
-                        // compute new intersection point
-                        x1 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y1 = axisy.min;
-                    }
-                    else if (y2 <= y1 && y2 < axisy.min) {
-                        if (y1 < axisy.min)
-                            continue;
-                        x2 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y2 = axisy.min;
-                    }
+						// clip with ymin
+						if (y1 <= y2 && y1 < axisy.min) {
+							if (y2 < axisy.min)
+								continue;   // line segment is outside
+							// compute new intersection point
+							x1 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
+							y1 = axisy.min;
+						}
+						else if (y2 <= y1 && y2 < axisy.min) {
+							if (y1 < axisy.min)
+								continue;
+							x2 = (axisy.min - y1) / (y2 - y1) * (x2 - x1) + x1;
+							y2 = axisy.min;
+						}
 
-                    // clip with ymax
-                    if (y1 >= y2 && y1 > axisy.max) {
-                        if (y2 > axisy.max)
-                            continue;
-                        x1 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y1 = axisy.max;
-                    }
-                    else if (y2 >= y1 && y2 > axisy.max) {
-                        if (y1 > axisy.max)
-                            continue;
-                        x2 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
-                        y2 = axisy.max;
-                    }
+						// clip with ymax
+						if (y1 >= y2 && y1 > axisy.max) {
+							if (y2 > axisy.max)
+								continue;
+							x1 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
+							y1 = axisy.max;
+						}
+						else if (y2 >= y1 && y2 > axisy.max) {
+							if (y1 > axisy.max)
+								continue;
+							x2 = (axisy.max - y1) / (y2 - y1) * (x2 - x1) + x1;
+							y2 = axisy.max;
+						}
 
-                    // clip with xmin
-                    if (x1 <= x2 && x1 < axisx.min) {
-                        if (x2 < axisx.min)
-                            continue;
-                        y1 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x1 = axisx.min;
-                    }
-                    else if (x2 <= x1 && x2 < axisx.min) {
-                        if (x1 < axisx.min)
-                            continue;
-                        y2 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x2 = axisx.min;
-                    }
+						// clip with xmin
+						if (x1 <= x2 && x1 < axisx.min) {
+							if (x2 < axisx.min)
+								continue;
+							y1 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
+							x1 = axisx.min;
+						}
+						else if (x2 <= x1 && x2 < axisx.min) {
+							if (x1 < axisx.min)
+								continue;
+							y2 = (axisx.min - x1) / (x2 - x1) * (y2 - y1) + y1;
+							x2 = axisx.min;
+						}
 
-                    // clip with xmax
-                    if (x1 >= x2 && x1 > axisx.max) {
-                        if (x2 > axisx.max)
-                            continue;
-                        y1 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x1 = axisx.max;
-                    }
-                    else if (x2 >= x1 && x2 > axisx.max) {
-                        if (x1 > axisx.max)
-                            continue;
-                        y2 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
-                        x2 = axisx.max;
-                    }
+						// clip with xmax
+						if (x1 >= x2 && x1 > axisx.max) {
+							if (x2 > axisx.max)
+								continue;
+							y1 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
+							x1 = axisx.max;
+						}
+						else if (x2 >= x1 && x2 > axisx.max) {
+							if (x1 > axisx.max)
+								continue;
+							y2 = (axisx.max - x1) / (x2 - x1) * (y2 - y1) + y1;
+							x2 = axisx.max;
+						}
 
-                    if (x1 != prevx || y1 != prevy)
-                        ctx.moveTo(axisx.p2c(x1) + xoffset, axisy.p2c(y1) + yoffset);
+						if (x1 != prevx || y1 != prevy)
+							ctx.moveTo(axisx.p2c(x1) + xoffset, axisy.p2c(y1) + yoffset);
 
-                    prevx = x2;
-                    prevy = y2;
-                    ctx.lineTo(axisx.p2c(x2) + xoffset, axisy.p2c(y2) + yoffset);
-                }
-                ctx.stroke();
-            }
+						prevx = x2;
+						prevy = y2;
+						ctx.lineTo(axisx.p2c(x2) + xoffset, axisy.p2c(y2) + yoffset);
+					}
+					ctx.stroke();
+
+					//if (b==1) {
+						//console.log(axisx);
+						//console.log(axisy);
+					//}
+				}
+			}
 
             function plotLineArea(datapoints, axisx, axisy) {
                 var points = datapoints.points,
